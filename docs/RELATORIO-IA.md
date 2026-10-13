@@ -91,3 +91,29 @@ Também propôs manter este relatório desde o início, atendendo à Obs2 da ati
   automaticamente. Manter a versão gerada pelo Expo evita que o arquivo volte a ser alterado a
   cada `expo start`. Conferido com `npm run typecheck`: sem erros.
 - **Solução:** versão do Expo mantida e registrada em commit próprio.
+
+### Ocorrência 6 — Variáveis do `.env` com prefixo do Next.js
+
+- **Etapa:** 3.4 (copiar as chaves para o app)
+- **Problema:** o `.env` foi preenchido com o trecho que o botão *Connect* do Supabase mostra para
+  Next.js:
+  ```
+  NEXT_PUBLIC_SUPABASE_URL=...
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
+  ```
+  O Expo só embute no app variáveis com o prefixo `EXPO_PUBLIC_`, e o código do guia lê
+  `EXPO_PUBLIC_SUPABASE_URL` e `EXPO_PUBLIC_SUPABASE_KEY`. Com os nomes errados, o app falharia na
+  Etapa 4 com "Variáveis do Supabase ausentes" (Apêndice B).
+- **Resposta da IA:** a IA conferiu o `.env` antes de seguir (mascarando a chave), identificou os
+  nomes trocados e renomeou as duas variáveis, mantendo os valores.
+- **Lição:** o snippet do *Connect* muda conforme o framework selecionado; para este projeto vale
+  sempre o nome do `.env.example`.
+
+### Fechamento do Encontro 1
+
+- Teste de fumaça aprovado no iPhone (Expo Go): "FinTrack funcionando!".
+- Supabase: projeto `fintrack` em São Paulo, `schema.sql` executado, `categories` com 14 linhas,
+  `transactions` vazia, RLS ativo nas duas tabelas, confirmação de e-mail desligada.
+- Configurações de segurança na criação do projeto: *Automatically expose new tables* desligado
+  (as permissões vêm só dos `grant` do `schema.sql`) e *automatic RLS* ligado.
+- Chave usada no app: *publishable*. A *secret key* não foi copiada para o projeto.
