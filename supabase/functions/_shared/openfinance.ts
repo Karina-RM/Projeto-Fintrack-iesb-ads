@@ -138,12 +138,31 @@ const RULES_INCOME: [string, string][] = [
   ['Presentes', 'gift|presente'],
 ];
 
-// Cada regra é uma lista de palavras separadas por "|".
-function firstMatch(rules: [string, string][], text: string): string | null {
-  for (const [category, words] of rules) {
-    if (words.split('|').some((w) => text.includes(w))) return category;
+// A palavra-chave precisa começar uma palavra do texto: "posto" não casa dentro de
+// "imposto", nem "curso" dentro de "concurso". Prefixos continuam valendo
+// ("combust" casa "combustivel").
+function startsWord(text: string, word: string): boolean {
+  let i = text.indexOf(word);
+  while (i !== -1) {
+    if (i === 0 || !/[a-z0-9]/.test(text[i - 1])) return true;
+    i = text.indexOf(word, i + 1);
   }
-  return null;
+  return false;
+}
+
+// Cada regra é uma lista de palavras separadas por "|". Se várias casarem, vence a
+// mais longa (mais específica): "mercado livre" (Compras) vence "mercado" (Alimentação).
+// Em empate, vale a ordem das regras.
+function firstMatch(rules: [string, string][], text: string): string | null {
+  let best: { category: string; size: number } | null = null;
+  for (const [category, words] of rules) {
+    for (const word of words.split('|')) {
+      if (startsWord(text, word) && (!best || word.length > best.size)) {
+        best = { category, size: word.length };
+      }
+    }
+  }
+  return best?.category ?? null;
 }
 
 // Categoria do Pluggy (quando existe) primeiro; depois palavras da descrição.
@@ -217,10 +236,7 @@ export function buildRange(lastSyncedAt: string | null, now: Date) {
     last && !Number.isNaN(last.getTime())
       ? new Date(last.getTime() - 7 * DAY)
       : new Date(now.getTime() - 90 * DAY);
-  return {
-    from: start.toISOString().slice(0, 10),
-    to: now.toISOString().slice(0, 10),
-  };
+  return { from: start.toISOString().slice(0, 10), to: now.toISOString().slice(0, 10) };
 }
 
 // Mensagem para o usuário quando a conexão não está pronta; null = pode importar.
