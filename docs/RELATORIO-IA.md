@@ -246,6 +246,26 @@ etapa, para o diff mostrar exatamente a mudança.
   tecnologias, como executar, arquitetura, scripts, link para este relatório e autora). Na
   Etapa 17 ele é substituído pela versão completa do Código 81.
 
+### Erro 7 — Etapa 10: aviso "Invalid DOM property `transform-origin`" no gráfico
+
+- **Onde:** Código 51 (`src/components/DonutChart.tsx`), `<G rotation={-90} origin={...}>`.
+- **Erro (relatado pela aluna ao rodar o app):**
+  ```
+  Invalid DOM property `transform-origin`. Did you mean `transformOrigin`?
+  ```
+- **Prompt:** "invalid DOM property transform-origin did u mean transformOrigin"
+- **Resposta da IA / causa:** "DOM property" é um aviso do React DOM, ou seja, da versão web
+  do app (o guia instala `react-dom` e `react-native-web`). Na web, o `react-native-svg` converte
+  a prop `origin` no atributo `transform-origin` (`node_modules/react-native-svg/lib/module/web/
+  utils/prepare.js`, linha 43), e o React 19 rejeita nomes com hífen como propriedade. No
+  iPhone e no Android o aviso não aparece, mas o código é o mesmo para as três plataformas.
+- **Correção:** trocar `rotation` + `origin` pela transformação SVG equivalente, que gira -90°
+  em torno do centro e funciona igual na web e no nativo:
+  ```tsx
+  <G transform={`rotate(-90 ${center} ${center})`}>
+  ```
+- **Verificação:** `npm run typecheck` sem erros e `npx expo export --platform web` empacotando.
+
 ### Observação — legenda do gráfico limitada a 6 categorias
 
 - **Onde:** Código 52 (`app/(app)/(tabs)/index.tsx`), `summary.byCategory.slice(0, 6)`.

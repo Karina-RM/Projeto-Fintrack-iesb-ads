@@ -38,7 +38,10 @@ export function DonutChart({
   return (
     <View style={{ width: size, height: size }}>
       <Svg width={size} height={size}>
-        <G rotation={-90} origin={`${center}, ${center}`}>
+        {/* Gira -90° em torno do centro para a 1ª fatia começar no topo.
+            Usa a sintaxe SVG em vez de rotation/origin: o origin vira o atributo
+            inválido transform-origin no React DOM (versão web). */}
+        <G transform={`rotate(-90 ${center} ${center})`}>
           <Circle
             cx={center}
             cy={center}
