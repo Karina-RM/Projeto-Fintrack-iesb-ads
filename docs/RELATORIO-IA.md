@@ -170,3 +170,89 @@ Também propôs manter este relatório desde o início, atendendo à Obs2 da ati
 
 - Schemas Zod, serviços e hooks criados; `npm run typecheck` sem erros e 24 testes passando.
 - Arquitetura respeitada: nenhuma tela ainda; o caminho tela → hook → serviço → banco está pronto.
+
+---
+
+## Erros localizados no material
+
+Erros e inconsistências encontrados no próprio guia, que passariam despercebidos para quem só
+copia os blocos de código. Para cada um: onde está, por que está errado e como foi corrigido.
+Quando há código envolvido, a correção está em um commit `fix:` separado, logo após o commit da
+etapa, para o diff mostrar exatamente a mudança.
+
+### Erro 1 — Etapa 2.4: texto e código divergem no identificador do app
+
+- **Onde:** texto da seção 2.4 × Código 2 (`app.json`).
+- **O que está errado:** o texto manda trocar `seuusuario` por um nome único, mas o código já
+  traz `br.edu.iesb.bruno.fintrack`; a palavra `seuusuario` não aparece em lugar nenhum.
+- **Decisão:** mantido o identificador do professor, por orientação.
+
+### Erro 2 — Etapa 2.7: ponto de verificação desatualizado para o SDK 57
+
+- **Onde:** ponto de verificação da seção 2.7 e da Etapa 4.7.
+- **O que está errado:** o guia afirma que o `expo-env.d.ts` é criado pelo `npx expo start`. No
+  Expo SDK 57 ele não é criado, o que causa o erro de `process` na Etapa 4.
+- **Correção:** ver Ocorrências 5 e 8 (`"types": ["jest", "expo/types"]` no `tsconfig.json`).
+
+### Erro 3 — Etapa 3.1: numeração da lista
+
+- **Onde:** passos da seção 3.1, numerados 1, 1, 2, 3.
+- **Correção:** apenas documental (são quatro passos: 1 a 4).
+
+### Erro 4 — Etapa 8: telas do Open Finance referenciadas antes de existirem
+
+- **Onde:** Código 39 (`app/(app)/_layout.tsx`) e Código 41 (`app/(app)/(tabs)/profile.tsx`).
+- **O que está errado:** os dois blocos são cópias idênticas das versões finais da Etapa 15
+  (Códigos 78 e 80). Na Etapa 8:
+  - o layout declara `banks/index`, `banks/connect` e `banks/callback`, rotas que só serão
+    criadas na Etapa 15. O Expo Router avisa que essas rotas não existem (sintoma descrito no
+    Apêndice B: "Aviso de rota inexistente no Router");
+  - o Perfil mostra o atalho "Contas bancárias", que leva a `/banks`. Ao tocar, o app abre a tela
+    de rota inexistente ("Unmatched route").
+  O `npm run typecheck` não detecta nenhum dos dois, porque as rotas não são tipadas.
+- **Correção (commit `fix:` após a Etapa 8):** removidas as três `Stack.Screen` de `banks/*` do
+  layout e o atalho "Contas bancárias" do Perfil (com os imports e estilos que só ele usava).
+  Os dois voltam na Etapa 15, junto com as telas reais, usando os Códigos 78 e 80 do guia.
+
+### Erro 5 — Etapa 9: tela de edição importa um componente da Etapa 15
+
+- **Onde:** Código 48 (`app/(app)/transaction/[id].tsx`).
+- **O que está errado:** o arquivo é a versão final (idêntica ao Código 79) e importa
+  `ImportedTransactionForm`, que só é criado na Etapa 15 (Código 73). Resultado na Etapa 9:
+  ```
+  app/(app)/transaction/[id].tsx(3,41): error TS2307: Cannot find module
+    '@/components/ImportedTransactionForm' or its corresponding type declarations.
+  app/(app)/transaction/[id].tsx(49,22): error TS7006: Parameter 'categoryId'
+    implicitly has an 'any' type.
+  ```
+  Além do erro de tipos, o Metro não consegue empacotar o app (módulo inexistente), então a tela
+  vermelha de erro aparece no celular e o roteiro da Etapa 9 não pode ser executado. O guia afirma
+  que o código foi conferido "com verificação de tipos sem erros", o que só vale para o projeto
+  completo, não para a Etapa 9.
+- **Correção (commit `fix:` após a Etapa 9):** versão base da tela de edição, sem o ramo de
+  lançamentos importados: removidos o import de `ImportedTransactionForm`, o hook
+  `useRecategorizeTransaction` e o bloco `if (data.source === 'open_finance')`. A versão completa
+  (Código 79) entra na Etapa 15.
+- **Verificação:** `npm run typecheck` sem erros, 24 testes passando e `npx expo export
+  --platform android` empacotando o app.
+
+### Observação — campos do Open Finance já presentes na base
+
+- O Código 9 (tipos, Etapa 4) é idêntico ao Código 64 (Etapa 15) e o Código 45
+  (`TransactionItem`) é idêntico ao 74. Eles citam `source`, `connection_id` e `account_name`,
+  colunas que o banco só ganha na Etapa 14 (`open-finance.sql`).
+- **Por que não foi corrigido:** não quebra nada. Até a Etapa 14 esses campos chegam como
+  `undefined`, e o código só os usa em comparações (`source === 'open_finance'`), que dão falso.
+  Fica registrado porque o tipo `Transaction` promete campos que o banco ainda não tem.
+
+---
+
+## Encontro 3 — Etapas 7 a 9
+
+- **Etapa 7:** componentes do design system; `npm run typecheck` sem erros.
+- **Etapa 8:** `app/index.tsx` temporário apagado; autenticação, guardas de rota, abas e Perfil.
+  Corrigido o Erro 4.
+- **Etapa 9:** CRUD de lançamentos. Corrigido o Erro 5.
+- Revisão de código feita contra o texto de cada etapa (formulário limpa a categoria ao trocar o
+  tipo, data 31/02 rejeitada por `brToISO`, busca sem acento via `normalize('NFD')`, cache
+  invalidado por prefixo `['transactions']`).
