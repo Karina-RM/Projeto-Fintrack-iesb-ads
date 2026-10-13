@@ -40,7 +40,7 @@
     "ios": "expo start --ios",
     "test": "jest",
     "typecheck": "tsc --noEmit",
-    "format": "prettier --write \"app/**/*.{ts,tsx}\" \"src/**/*.{ts,tsx}\" \"__tests__/**/*.ts\""
+    "format": "prettier --write \"app/**/*.{ts,tsx}\" \"src/**/*.{ts,tsx}\" \"__tests__/**/*.ts\" \"supabase/functions/**/*.ts\""
   },
   "private": true,
   "jest": {
