@@ -336,6 +336,83 @@ etapa, para o diff mostrar exatamente a mudança.
 - **Observação:** o guia não testava `friendlyError`; por isso o erro passou pelos "24 testes
   passando" da Etapa 5.
 
+### Erro 10 — Etapa 13: categorização casa palavras no meio de outras palavras
+
+- **Onde:** Código 53 (`supabase/functions/_shared/openfinance.ts`), função `firstMatch`, usada
+  por `suggestCategory`.
+- **O que está errado:** cada palavra-chave é procurada com `text.includes(w)`, ou seja, em
+  qualquer posição do texto, e vence a primeira categoria da lista que casar. Consequências
+  verificadas com descrições reais de extrato:
+
+  | Descrição no banco | Esperado | Guia sugeria | Por quê |
+  | --- | --- | --- | --- |
+  | `MERCADO LIVRE*VENDEDOR` | Compras | Alimentação | "mercado" (Alimentação) vem antes de "mercado livre" (Compras) |
+  | `MERCADOLIVRE*3PRODUTOS` | Compras | Alimentação | idem: a regra "mercadolivre" nunca é alcançada |
+  | `PAGAMENTO IMPOSTO DE RENDA` | Contas | Transporte | "im**posto**" contém "posto" (posto de gasolina) |
+  | `INSCRICAO CONCURSO PUBLICO` | Outros | Educação | "con**curso**" contém "curso" |
+
+  As regras `mercado livre|mercadolivre` da categoria Compras eram **código morto**: nenhuma
+  descrição chegava até elas. Os 22 testes do guia não pegam isso porque só testam casos em que
+  a primeira palavra da lista é a certa (IFOOD, Drogaria, NETFLIX).
+- **Prompt:** nenhum. Encontrado pela IA na auditoria da Etapa 13 (o guia diz que é ali que
+  "moram os erros que dinheiro não perdoa").
+- **Correção, com TDD:**
+  1. **Teste primeiro:** novo caso em `__tests__/openfinance.test.ts` com as quatro descrições
+     acima mais dois controles (`SUPERMERCADO EXTRA` → Alimentação, `POSTO SHELL` → Transporte).
+     Antes da correção: `Tests: 1 failed, 22 passed` (`Expected: "Compras"`,
+     `Received: "Alimentação"`).
+  2. **Correção:** a palavra-chave precisa **começar uma palavra** do texto (prefixos continuam
+     valendo, como "combust" → "combustivel"), e quando várias casam **vence a mais longa**, a mais
+     específica ("mercado livre" vence "mercado"). Em empate, vale a ordem original das regras.
+  3. **Resultado:** os 22 testes do guia continuam passando e o novo também. Total: **51**.
+
+### Erro 11 — Etapa 14: conexão não é salva quando o banco ainda está processando
+
+- **Onde:** Código 61 (`supabase/functions/bank-sync/index.ts`).
+- **O que está errado:** logo após conectar, o item do Pluggy costuma estar em `UPDATING`. Nesse
+  caso a função faz um `update` em `bank_connections` **antes de a conexão existir na tabela**
+  (não atualiza nada) e responde 409, sem nunca chegar ao `upsert` que cria a linha. Resultado:
+  - o app mostra "Conectado, mas a importação falhou. Toque em **Sincronizar** na lista de bancos
+    para tentar de novo" (Código 76), mas o banco **não aparece na lista**: não há botão para
+    sincronizar;
+  - o Apêndice B manda "Aguardar alguns segundos e tocar em Sincronizar" para o erro 409, o que é
+    impossível pelo mesmo motivo;
+  - mais grave: a autorização continua ativa no Pluggy, mas o app não tem registro dela, então a
+    usuária **não consegue revogar** pelo app (o botão Desconectar também fica na lista). Isso
+    contraria a seção 12.4 (revogação e LGPD) e o critério "desconexão que apaga os dados".
+- **Prompt:** nenhum. Encontrado pela IA comparando o fluxo da função com o texto do app
+  (Códigos 72, 75 e 76) e com o Apêndice B.
+- **Correção (commit `fix:` após a Etapa 14):** a conexão é gravada (upsert) **antes** da
+  checagem de prontidão, já com `status: 'error'` e a mensagem de `describeItemProblem` quando o
+  item não está pronto; só depois a função responde com o erro. A verificação de dono
+  (`clientUserId`) continua acontecendo antes de qualquer gravação.
+- **Verificação:** `deno check` sem erros nas três funções (antes e depois da correção).
+
+### Erro 12 — Etapa 13: trechos copiados de outro projeto ("ScanIA")
+
+- **Onde:** texto da Etapa 13 ("como o `parse.ts` do ScanIA") e a "Saída esperada" do
+  `npm test`, que lista `PASS __tests__/parse.test.ts`.
+- **O que está errado:** o FinTrack não tem `parse.ts` nem `parse.test.ts`; as referências vêm de
+  outro projeto da série. Quem compara a saída com a do guia procura um arquivo que não existe.
+- **Correção:** apenas documental. Saída real: 5 suítes (money, date, summary, errors,
+  openfinance).
+
+### Observação — Código 56 (tsconfig da Etapa 14) desfaria a correção do Erro 2
+
+- O Código 56 é idêntico ao Código 3 da Etapa 2. Os `exclude` das funções Deno já estavam lá
+  desde o início; nada muda. Colar o bloco literalmente, porém, voltaria a `"types": ["jest"]` e
+  ao `expo-env.d.ts`, trazendo de volta o erro de `process` (Ocorrência 8).
+- **Decisão:** mantido o `tsconfig.json` atual; aplicada apenas a linha do `format` (Código 57).
+
+### Observação — Client Secret no histórico do terminal (Etapa 14.5)
+
+- O guia publica os segredos com
+  `npx supabase secrets set PLUGGY_CLIENT_ID=... PLUGGY_CLIENT_SECRET=...` e avisa que o segredo
+  fica no histórico do terminal.
+- **Alternativa adotada:** gravar os dois valores em `supabase/.env` (já ignorado pelo Git pelo
+  padrão `.env`) e rodar `npx supabase secrets set --env-file supabase/.env`. O segredo não passa
+  pela linha de comando nem pelo histórico.
+
 ### Observação — legenda do gráfico limitada a 6 categorias
 
 - **Onde:** Código 52 (`app/(app)/(tabs)/index.tsx`), `summary.byCategory.slice(0, 6)`.
@@ -396,3 +473,33 @@ etapa, para o diff mostrar exatamente a mudança.
 Os 16 cenários foram executados pela aluna no iPhone (Expo Go) e aprovados. Durante o roteiro
 apareceram e foram corrigidos os Erros 7 (aviso na versão web), 8 (CSV como texto) e 9
 (mensagem de rede sem tradução). Ao final: `npm run typecheck` sem erros e 28 testes passando.
+
+---
+
+## Encontro 5 — Etapas 12 a 14
+
+### Etapa 12 — Conceitos e conta no Pluggy
+
+- Etapa conceitual (Open Finance, agregador, segurança e custos). A conta de desenvolvedor e a
+  *Application* no dashboard.pluggy.ai são criadas pela aluna; o Client ID e o Client Secret
+  ficam fora do projeto e fora do chat com a IA.
+
+### Etapa 13 — Regras puras do Open Finance
+
+- `openfinance.ts` e os 22 testes do guia: todos passando.
+- Exercício "quebre de propósito" (`Math.abs(tx.amount)` → `tx.amount`): **5 testes falharam**
+  (despesa com valor positivo, direção pelo sinal, fatura não contada duas vezes, estornos e
+  arredondamento). Alteração desfeita.
+- Corrigido o Erro 10 (categorização). Total: 5 suítes, **51 testes passando**.
+
+### Etapa 14 — Banco e Edge Functions
+
+- `supabase/open-finance.sql` versionado. Revisão: `bank_connections` com RLS nas quatro
+  operações; `unique (user_id, external_id)` como trava de duplicidade; `on delete cascade` da
+  conexão para os lançamentos importados.
+- Funções revisadas: `clientUserId` dentro de `options` no Connect Token; verificação de dono no
+  `bank-sync` antes de qualquer gravação; cliente Supabase com o token do usuário (RLS vale dentro
+  da função); `upsert` com `ignoreDuplicates` (idempotência); revogação apagando primeiro no
+  Pluggy.
+- Corrigido o Erro 11 (conexão não salva com item em processamento).
+- `deno check` das três funções: sem erros. `npm run typecheck`: sem erros.
