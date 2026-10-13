@@ -14,7 +14,14 @@ export function friendlyError(error: unknown): string {
   if (message.includes('Email not confirmed')) {
     return 'Confirme seu e-mail antes de entrar.';
   }
-  if (/network request failed|failed to fetch/i.test(message)) {
+  // "Network request failed": fetch do React Native; "Failed to fetch": navegador;
+  // "fetch failed ... appears to be offline": fetch do Expo (SDK 57) no iOS;
+  // "Unable to resolve host": Android sem rede.
+  if (
+    /network request failed|failed to fetch|fetch failed|appears to be offline|unable to resolve host/i.test(
+      message,
+    )
+  ) {
     return 'Sem conexão com a internet.';
   }
   if (/rate limit/i.test(message)) {

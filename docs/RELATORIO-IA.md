@@ -302,6 +302,40 @@ etapa, para o diff mostrar exatamente a mudança.
   navegador e o `Alert.alert` não faz nada, então nem o erro aparece. No iPhone, puxar para
   atualizar e a folha de compartilhamento funcionaram (o que revelou o Erro 8).
 
+### Erro 9 — Etapa 4: erro de rede aparece cru, em inglês, em vez de "Sem conexão com a internet."
+
+- **Onde:** Código 13 (`src/utils/errors.ts`), regex `/network request failed|failed to fetch/i`;
+  cenário 16 do roteiro da Etapa 11 (modo avião).
+- **Problema (print da aluna no iPhone, modo avião):** a tela de erro aparece com o botão
+  "Tentar novamente" (o cenário passa), mas a mensagem é:
+  ```
+  Error: fetch failed: UnexpectedException: The Internet connection appears to be offline.
+  (at ExpoModulesCore/Promise.swift:56)
+  ```
+  Uma mensagem técnica, em inglês, com caminho de arquivo Swift, exatamente o que o
+  `friendlyError` existe para evitar ("O Supabase devolve mensagens em inglês. Aqui traduzimos
+  as mais comuns", seção 4.6).
+- **Causa:** o regex do guia cobre a mensagem do `fetch` antigo do React Native
+  (`Network request failed`) e a do navegador (`Failed to fetch`). No Expo SDK 57 o `fetch`
+  usado pelo `supabase-js` é o do Expo (módulo nativo), que falha com `fetch failed: ... The
+  Internet connection appears to be offline`. Nenhum dos dois padrões casa, então a função
+  devolve a mensagem original.
+- **Correção, com TDD:**
+  1. **Teste primeiro** (`__tests__/errors.test.ts`): 4 casos para `friendlyError`, incluindo a
+     mensagem real copiada do print. Resultado antes da correção:
+     ```
+     ✕ traduz falha de rede do fetch do Expo (SDK 57, iOS em modo avião)
+       Expected: "Sem conexão com a internet."
+       Received: "fetch failed: UnexpectedException: The Internet connection appears to be offline. ..."
+     Tests: 1 failed, 3 passed, 4 total
+     ```
+  2. **Correção:** regex ampliado com `fetch failed`, `appears to be offline` e
+     `unable to resolve host` (equivalente no Android), com comentário explicando a origem de
+     cada padrão.
+  3. **Resultado:** 4 suítes, **28 testes passando** (os 24 do guia + 4 novos).
+- **Observação:** o guia não testava `friendlyError`; por isso o erro passou pelos "24 testes
+  passando" da Etapa 5.
+
 ### Observação — legenda do gráfico limitada a 6 categorias
 
 - **Onde:** Código 52 (`app/(app)/(tabs)/index.tsx`), `summary.byCategory.slice(0, 6)`.
@@ -356,3 +390,9 @@ etapa, para o diff mostrar exatamente a mudança.
 - Nenhum `console.log` nem uso de `any` no código (`grep` em `app/`, `src/` e `__tests__/`).
 - `.env` ignorado pelo Git; `.env.example` e `supabase/schema.sql` versionados.
 - README do app base criado (ver Erro 6).
+
+### Roteiro de validação da Etapa 11 — concluído no iPhone
+
+Os 16 cenários foram executados pela aluna no iPhone (Expo Go) e aprovados. Durante o roteiro
+apareceram e foram corrigidos os Erros 7 (aviso na versão web), 8 (CSV como texto) e 9
+(mensagem de rede sem tradução). Ao final: `npm run typecheck` sem erros e 28 testes passando.
