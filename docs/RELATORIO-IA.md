@@ -117,3 +117,56 @@ Também propôs manter este relatório desde o início, atendendo à Obs2 da ati
 - Configurações de segurança na criação do projeto: *Automatically expose new tables* desligado
   (as permissões vêm só dos `grant` do `schema.sql`) e *automatic RLS* ligado.
 - Chave usada no app: *publishable*. A *secret key* não foi copiada para o projeto.
+
+---
+
+## Encontro 2 — Etapas 4 a 6
+
+### Ocorrência 7 — Indentação perdida ao copiar os blocos de código do PDF
+
+- **Etapas:** 4 a 6 (todos os "Código N")
+- **Problema:** ao copiar texto de um PDF, a indentação dos blocos de código chega irregular
+  (linhas com recuo extra, outras coladas à margem), porque o PDF guarda posições na página e
+  não espaços.
+- **Resposta da IA:** a IA extraiu os blocos usando a fonte monoespaçada do PDF (Consolas) para
+  separar código de texto, conferiu o resultado contra o `schema.sql` já testado (60 de 60 linhas
+  idênticas) e normalizou a formatação com o Prettier do próprio projeto.
+- **Solução para quem copia à mão:** colar o bloco e rodar `npm run format` (Prettier) antes do
+  `npm run typecheck`.
+
+### Ocorrência 8 — `Cannot find name 'process'` (TS2591) no `npm run typecheck`
+
+- **Etapa:** 4.7 (ponto de verificação)
+- **Erro:**
+  ```
+  src/lib/supabase.ts(6,13): error TS2591: Cannot find name 'process'.
+  Do you need to install type definitions for node?
+  ```
+- **Contexto:** o próprio guia prevê esse erro e manda conferir se o `expo-env.d.ts` existe. Como
+  registrado na Ocorrência 5, no SDK 57 o Expo não criou esse arquivo e removeu a referência do
+  `tsconfig.json`. O `expo-env.d.ts` só servia para carregar os tipos globais do Expo
+  (`/// <reference types="expo/types" />`), onde está declarado o `process.env`.
+- **Resposta da IA:** não instalar `@types/node` (sugestão genérica do TypeScript, que traria
+  tipos de Node.js para um app React Native). Em vez disso, carregar os tipos do Expo direto no
+  `tsconfig.json`, junto com os do Jest:
+  ```json
+  "types": ["jest", "expo/types"]
+  ```
+- **Resultado:** `npm run typecheck` sem erros.
+
+### Ponto de verificação da Etapa 5 — testes automatizados
+
+- `npm test`: **3 suítes, 24 testes passando** (o mesmo número do guia).
+- Exercício "quebre de propósito" (roundMoney devolvendo `value` sem arredondar):
+  ```
+  ● roundMoney / toInputMoney › arredonda para 2 casas
+    Expected: 0.3
+    Received: 0.30000000000000004
+  ```
+  O teste detectou o erro clássico de ponto flutuante do JavaScript. Alteração desfeita e os 24
+  testes voltaram a passar.
+
+### Ponto de verificação da Etapa 6 — camada de dados
+
+- Schemas Zod, serviços e hooks criados; `npm run typecheck` sem erros e 24 testes passando.
+- Arquitetura respeitada: nenhuma tela ainda; o caminho tela → hook → serviço → banco está pronto.
