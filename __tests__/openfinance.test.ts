@@ -65,6 +65,16 @@ describe('suggestCategory', () => {
     expect(suggestCategory('income', 'Transfer', 'TED recebida')).toBe('Outros');
   });
 
+  // Erro 10 do relatório: palavras-chave casavam no meio de outras palavras.
+  it('casa palavras inteiras e prefere a expressão mais específica', () => {
+    expect(suggestCategory('expense', null, 'MERCADO LIVRE*VENDEDOR')).toBe('Compras');
+    expect(suggestCategory('expense', null, 'MERCADOLIVRE*3PRODUTOS')).toBe('Compras');
+    expect(suggestCategory('expense', null, 'PAGAMENTO IMPOSTO DE RENDA')).toBe('Contas');
+    expect(suggestCategory('expense', null, 'INSCRICAO CONCURSO PUBLICO')).toBe('Outros');
+    expect(suggestCategory('expense', null, 'SUPERMERCADO EXTRA')).toBe('Alimentação');
+    expect(suggestCategory('expense', null, 'POSTO SHELL')).toBe('Transporte');
+  });
+
   it('usa as regras certas para cada direção', () => {
     expect(suggestCategory('income', null, 'Rendimentos CDB')).toBe('Investimentos');
     expect(suggestCategory('expense', null, 'Rendimentos CDB')).toBe('Outros');
@@ -116,19 +126,12 @@ describe('mapTransaction', () => {
     expect(mapTransaction(tx({ currencyCode: 'USD' }), 'BANK')).toEqual({
       skip: 'foreign_currency',
     });
-    expect(mapTransaction(tx({ amount: 0 }), 'BANK')).toEqual({
-      skip: 'invalid',
-    });
-    expect(mapTransaction(tx({ date: 'x' }), 'BANK')).toEqual({
-      skip: 'invalid',
-    });
+    expect(mapTransaction(tx({ amount: 0 }), 'BANK')).toEqual({ skip: 'invalid' });
+    expect(mapTransaction(tx({ date: 'x' }), 'BANK')).toEqual({ skip: 'invalid' });
   });
 
   it('não conta duas vezes: pagamento de fatura na conta é ignorado', () => {
-    const bill = tx({
-      description: 'PAGAMENTO DE FATURA CARTÃO',
-      amount: -1200,
-    });
+    const bill = tx({ description: 'PAGAMENTO DE FATURA CARTÃO', amount: -1200 });
     expect(mapTransaction(bill, 'BANK')).toEqual({ skip: 'card_bill_payment' });
   });
 
@@ -138,15 +141,9 @@ describe('mapTransaction', () => {
       amount: -1200,
       description: 'Pagamento recebido',
     });
-    expect(mapTransaction(payment, 'CREDIT')).toEqual({
-      skip: 'card_payment_received',
-    });
+    expect(mapTransaction(payment, 'CREDIT')).toEqual({ skip: 'card_payment_received' });
 
-    const refund = tx({
-      type: 'CREDIT',
-      amount: -80,
-      description: 'Estorno Loja X',
-    });
+    const refund = tx({ type: 'CREDIT', amount: -80, description: 'Estorno Loja X' });
     expect(mapTransaction(refund, 'CREDIT')).toMatchObject({
       row: { type: 'income', amount: 80 },
     });
@@ -163,10 +160,7 @@ describe('buildRange', () => {
   const now = new Date('2026-09-19T12:00:00Z');
 
   it('na primeira vez busca 90 dias', () => {
-    expect(buildRange(null, now)).toEqual({
-      from: '2026-06-21',
-      to: '2026-09-19',
-    });
+    expect(buildRange(null, now)).toEqual({ from: '2026-06-21', to: '2026-09-19' });
   });
 
   it('depois, busca desde a última sincronização menos 7 dias', () => {
