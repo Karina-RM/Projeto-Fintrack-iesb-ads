@@ -1,19 +1,16 @@
-import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Alert, Share, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
 import { useAuth } from '@/context/AuthContext';
 import { listTransactions } from '@/services/transactions';
-import { colors, radius, spacing } from '@/theme';
+import { colors, spacing } from '@/theme';
 import { toCsv } from '@/utils/csv';
 import { friendlyError } from '@/utils/errors';
 
 export default function ProfileScreen() {
-  const router = useRouter();
   const { user, signOut } = useAuth();
   const [exporting, setExporting] = useState(false);
 
@@ -58,19 +55,6 @@ export default function ProfileScreen() {
         <Text style={styles.email}>{user?.email}</Text>
       </Card>
 
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => router.push('/banks')}
-        style={({ pressed }) => [styles.bankRow, pressed && styles.pressed]}
-      >
-        <Ionicons name="business" size={22} color={colors.primary} />
-        <View style={styles.bankInfo}>
-          <Text style={styles.bankTitle}>Contas bancárias</Text>
-          <Text style={styles.bankText}>Importe lançamentos via Open Finance</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color={colors.muted} />
-      </Pressable>
-
       <Button
         title="Exportar lançamentos (CSV)"
         variant="secondary"
@@ -108,19 +92,6 @@ const styles = StyleSheet.create({
   name: { fontSize: 20, fontWeight: '700', color: colors.text, textAlign: 'center' },
   email: { fontSize: 14, color: colors.muted, textAlign: 'center', marginTop: 2 },
   action: { marginBottom: spacing.sm },
-  pressed: { opacity: 0.8 },
-  bankRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  bankInfo: { flex: 1 },
-  bankTitle: { fontSize: 16, fontWeight: '600', color: colors.text },
-  bankText: { fontSize: 13, color: colors.muted, marginTop: 2 },
   version: {
     textAlign: 'center',
     color: colors.muted,
