@@ -236,6 +236,25 @@ etapa, para o diff mostrar exatamente a mudança.
 - **Verificação:** `npm run typecheck` sem erros, 24 testes passando e `npx expo export
   --platform android` empacotando o app.
 
+### Erro 6 — Etapa 11: checklist exige um README que só é criado na Etapa 17
+
+- **Onde:** seção 11.3 (checklist de qualidade do repositório) × seção 17.2 (Código 81).
+- **O que está errado:** o checklist da Etapa 11 pede "O README tem descrição, tecnologias,
+  capturas de tela e instruções de execução", mas o guia só manda criar o `README.md` na
+  Etapa 17. Além disso, o Código 81 descreve o Open Finance, que o app base ainda não tem.
+- **Correção:** criado na Etapa 11 um README do app base (descrição, funcionalidades,
+  tecnologias, como executar, arquitetura, scripts, link para este relatório e autora). Na
+  Etapa 17 ele é substituído pela versão completa do Código 81.
+
+### Observação — legenda do gráfico limitada a 6 categorias
+
+- **Onde:** Código 52 (`app/(app)/(tabs)/index.tsx`), `summary.byCategory.slice(0, 6)`.
+- **O que acontece:** o roteiro da Etapa 11 (cenário 13) espera que a legenda some cerca de
+  100%. Isso só vale se o mês tiver até 6 categorias de despesa. O banco tem 9; num mês com 7 ou
+  mais, o gráfico mostra fatias que não aparecem na legenda e a soma fica abaixo de 100%.
+- **Decisão:** mantido como no guia (não afeta o roteiro com os dados sugeridos). Melhoria
+  possível: agrupar da 6ª categoria em diante numa fatia "Outras".
+
 ### Observação — campos do Open Finance já presentes na base
 
 - O Código 9 (tipos, Etapa 4) é idêntico ao Código 64 (Etapa 15) e o Código 45
@@ -253,6 +272,31 @@ etapa, para o diff mostrar exatamente a mudança.
 - **Etapa 8:** `app/index.tsx` temporário apagado; autenticação, guardas de rota, abas e Perfil.
   Corrigido o Erro 4.
 - **Etapa 9:** CRUD de lançamentos. Corrigido o Erro 5.
+- **Pontos de verificação no iPhone: todos aprovados** (validados pela aluna): cadastro com
+  senha curta, cadastro válido com três abas, sessão mantida ao reabrir, nome e e-mail no
+  Perfil, logout, senha errada, CRUD de lançamentos, filtros, busca "aliment", data 31/02,
+  troca de tipo limpando a categoria e teste do RLS com uma segunda conta (lista vazia).
 - Revisão de código feita contra o texto de cada etapa (formulário limpa a categoria ao trocar o
   tipo, data 31/02 rejeitada por `brToISO`, busca sem acento via `normalize('NFD')`, cache
   invalidado por prefixo `['transactions']`).
+
+---
+
+## Encontro 4 — Etapas 10 e 11
+
+### Etapa 10 — Painel
+
+- `SummaryCards`, `DonutChart` (gráfico de rosca com `react-native-svg`, sem biblioteca de
+  gráficos) e tela inicial. `npm run typecheck` sem erros.
+- Revisão: saldo = receitas − despesas do mês (somados em centavos em `summarize`); o total no
+  centro do gráfico é `summary.expense`; `useMemo` antes dos retornos antecipados (regras dos
+  hooks respeitadas).
+
+### Etapa 11 — Qualidade
+
+- `npm run typecheck`: sem erros.
+- `npm test`: 3 suítes, 24 testes passando.
+- `npm run format`: todos os arquivos já estavam formatados.
+- Nenhum `console.log` nem uso de `any` no código (`grep` em `app/`, `src/` e `__tests__/`).
+- `.env` ignorado pelo Git; `.env.example` e `supabase/schema.sql` versionados.
+- README do app base criado (ver Erro 6).
