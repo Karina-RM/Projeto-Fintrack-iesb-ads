@@ -80,3 +80,14 @@ Também propôs manter este relatório desde o início, atendendo à Obs2 da ati
 - **Erro:** `Unknown command: "expo"`
 - **Causa:** digitação. `npm` não executa binários de pacotes; quem faz isso é o `npx`.
 - **Solução:** `npx expo start` (ou `npm start`, que chama o script `start` do package.json).
+
+### Ocorrência 5 — `expo-env.d.ts` não foi criado e o `tsconfig.json` mudou sozinho
+
+- **Etapa:** 2.7 (teste de fumaça)
+- **Divergência:** o ponto de verificação do guia diz que o arquivo `expo-env.d.ts` aparece na
+  raiz após o `npx expo start`. No Expo SDK 57 ele não foi criado, e o próprio Expo reescreveu o
+  `tsconfig.json`, removendo `.expo/types/**/*.ts` e `expo-env.d.ts` do `include`.
+- **Resposta da IA:** o comportamento é do Expo CLI do SDK 57, que ajusta o `tsconfig.json`
+  automaticamente. Manter a versão gerada pelo Expo evita que o arquivo volte a ser alterado a
+  cada `expo start`. Conferido com `npm run typecheck`: sem erros.
+- **Solução:** versão do Expo mantida e registrada em commit próprio.
