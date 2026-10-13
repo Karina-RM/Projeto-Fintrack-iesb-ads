@@ -1,13 +1,13 @@
 import Constants from 'expo-constants';
 import { useState } from 'react';
-import { Alert, Share, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
 import { useAuth } from '@/context/AuthContext';
+import { shareTransactionsCsv } from '@/services/exportCsv';
 import { listTransactions } from '@/services/transactions';
 import { colors, spacing } from '@/theme';
-import { toCsv } from '@/utils/csv';
 import { friendlyError } from '@/utils/errors';
 
 export default function ProfileScreen() {
@@ -24,7 +24,7 @@ export default function ProfileScreen() {
         Alert.alert('Nada para exportar', 'Registre lançamentos primeiro.');
         return;
       }
-      await Share.share({ title: 'fintrack.csv', message: toCsv(all) });
+      await shareTransactionsCsv(all);
     } catch (error) {
       Alert.alert('Erro ao exportar', friendlyError(error));
     } finally {

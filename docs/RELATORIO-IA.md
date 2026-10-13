@@ -266,6 +266,42 @@ etapa, para o diff mostrar exatamente a mudança.
   ```
 - **Verificação:** `npm run typecheck` sem erros e `npx expo export --platform web` empacotando.
 
+### Erro 8 — Etapa 8: "Exportar CSV" compartilha texto, não um arquivo .csv
+
+- **Onde:** Código 41 (`app/(app)/(tabs)/profile.tsx`), `Share.share({ title: 'fintrack.csv',
+  message: toCsv(all) })`; cenário 14 do roteiro da Etapa 11.
+- **Problema (relatado pela aluna no iPhone):** a folha de compartilhamento abre, mas o que é
+  exportado é um **arquivo de texto**, não um CSV.
+- **Prompt:** "Its updating and its shoing the share page. However, its exporting a text file"
+- **Resposta da IA / causa:** o `Share` do React Native só compartilha **texto** (`message`) ou
+  uma URL. O conteúdo do CSV vai como texto puro, então ao "Salvar em Arquivos" o iOS cria um
+  `.txt`, e no Mail ele vai no corpo da mensagem. O `title: 'fintrack.csv'` não cria arquivo
+  nenhum (no iOS ele nem é usado). O guia promete "relatório em CSV" e "o arquivo abre
+  corretamente no Excel em português" (seção 5.4), o que o código não entrega.
+  Segundo problema, escondido pelo primeiro: mesmo como arquivo, um CSV em UTF-8 **sem BOM**
+  abre no Excel com os acentos trocados ("Alimentação" → "AlimentaÃ§Ã£o").
+- **Correção:**
+  - instaladas as bibliotecas oficiais do Expo para arquivo e compartilhamento:
+    `npx expo install expo-file-system expo-sharing`;
+  - novo serviço `src/services/exportCsv.ts`: grava `fintrack.csv` no cache do app com BOM
+    UTF-8 e abre a folha de compartilhamento com o **arquivo** (`mimeType: 'text/csv'`,
+    `UTI: 'public.comma-separated-values-text'`). Se o aparelho não suportar compartilhar
+    arquivos (ex.: navegador), cai no comportamento antigo, como texto;
+  - o Perfil passa a chamar `shareTransactionsCsv(all)`. A regra pura `toCsv` (testada) não
+    mudou, e a tela continua sem acessar arquivos diretamente (camada de serviço).
+- **Verificação:** `npm run typecheck` sem erros, 24 testes passando, app empacotando para iOS.
+  No iPhone: Perfil → Exportar CSV gera o arquivo `fintrack.csv` (confirmado pela aluna:
+  "Export de csv funcionando").
+
+### Observação — validação da Etapa 11 só vale no aparelho
+
+- **Prompt:** "I have not being able to test the airplane mode since pushing down the page does
+  not trigger the refresh [...] also, no CSV sharing or nothing."
+- **Resposta da IA:** os testes estavam sendo feitos na **versão web** (o mesmo ambiente do
+  Erro 7). Na web, o `RefreshControl` (puxar para atualizar) não existe, o `Share` depende do
+  navegador e o `Alert.alert` não faz nada, então nem o erro aparece. No iPhone, puxar para
+  atualizar e a folha de compartilhamento funcionaram (o que revelou o Erro 8).
+
 ### Observação — legenda do gráfico limitada a 6 categorias
 
 - **Onde:** Código 52 (`app/(app)/(tabs)/index.tsx`), `summary.byCategory.slice(0, 6)`.
