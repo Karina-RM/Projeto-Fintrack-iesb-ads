@@ -25,14 +25,10 @@ Deno.serve(
       throw new HttpError(403, 'Esta conexão não pertence à sua conta.');
     }
 
+    // A conexão é salva ANTES de checar se o item está pronto. Assim, mesmo quando o
+    // Pluggy ainda está processando (409) ou houve erro de login, o banco aparece na
+    // lista do app com o botão Sincronizar e pode ser desconectado (revogação).
     const problem = describeItemProblem(item.status, item.executionStatus);
-    if (problem) {
-      await supabase
-        .from('bank_connections')
-        .update({ status: 'error', last_error: problem.message })
-        .eq('pluggy_item_id', item.id);
-      throw new HttpError(problem.httpStatus, problem.message);
-    }
 
     const { data: connection, error: connError } = await supabase
       .from('bank_connections')
@@ -41,8 +37,8 @@ Deno.serve(
           pluggy_item_id: item.id,
           institution_name: item.connector.name,
           institution_image_url: item.connector.imageUrl ?? null,
-          status: 'connected',
-          last_error: null,
+          status: problem ? 'error' : 'connected',
+          last_error: problem?.message ?? null,
         },
         { onConflict: 'user_id,pluggy_item_id' },
       )
@@ -50,6 +46,8 @@ Deno.serve(
       .single();
     if (connError || !connection)
       throw connError ?? new Error('Falha ao salvar a conexão.');
+
+    if (problem) throw new HttpError(problem.httpStatus, problem.message);
 
     // Nome da categoria -> id (as categorias são as mesmas do app).
     const { data: categories, error: catError } = await supabase
