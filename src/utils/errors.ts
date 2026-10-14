@@ -16,9 +16,10 @@ export function friendlyError(error: unknown): string {
   }
   // "Network request failed": fetch do React Native; "Failed to fetch": navegador;
   // "fetch failed ... appears to be offline": fetch do Expo (SDK 57) no iOS;
-  // "Unable to resolve host": Android sem rede.
+  // "Unable to resolve host": Android sem rede;
+  // "Failed to send a request to the Edge Function": supabase-js sem rede (FunctionsFetchError).
   if (
-    /network request failed|failed to fetch|fetch failed|appears to be offline|unable to resolve host/i.test(
+    /network request failed|failed to fetch|fetch failed|appears to be offline|unable to resolve host|failed to send a request/i.test(
       message,
     )
   ) {
