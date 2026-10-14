@@ -1,10 +1,12 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert } from 'react-native';
+import { ImportedTransactionForm } from '@/components/ImportedTransactionForm';
 import { Screen } from '@/components/Screen';
 import { ErrorState, LoadingView } from '@/components/StateViews';
 import { TransactionForm } from '@/components/TransactionForm';
 import {
   useDeleteTransaction,
+  useRecategorizeTransaction,
   useSaveTransaction,
   useTransaction,
 } from '@/hooks/useTransactions';
@@ -16,6 +18,7 @@ export default function EditTransactionScreen() {
   const { data, isLoading, isError, error, refetch } = useTransaction(id);
   const save = useSaveTransaction();
   const remove = useDeleteTransaction();
+  const recategorize = useRecategorizeTransaction();
 
   if (isLoading) return <LoadingView />;
   if (isError || !data) {
@@ -35,6 +38,26 @@ export default function EditTransactionScreen() {
           }),
       },
     ]);
+  }
+
+  if (data.source === 'open_finance') {
+    return (
+      <Screen scroll edges={['bottom', 'left', 'right']}>
+        <ImportedTransactionForm
+          transaction={data}
+          submitting={recategorize.isPending}
+          onSubmit={(categoryId) =>
+            recategorize.mutate(
+              { id: data.id, categoryId },
+              {
+                onSuccess: () => router.back(),
+                onError: (e) => Alert.alert('Não foi possível salvar', friendlyError(e)),
+              },
+            )
+          }
+        />
+      </Screen>
+    );
   }
 
   return (
