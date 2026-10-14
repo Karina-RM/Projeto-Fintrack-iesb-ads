@@ -510,6 +510,23 @@ etapa, para o diff mostrar exatamente a mudança.
 - **Efeito colateral positivo:** com a importação falhando (Erro 14), o banco **continuou na
   lista** com Sincronizar e Desconectar, o que confirma na prática a correção do Erro 11.
 
+### Erro 15 — Etapa 16: erro de rede das Edge Functions sem tradução (cenário 12)
+
+- **Onde:** Código 13 (`src/utils/errors.ts`) × Código 66 (`src/services/functions.ts`);
+  cenário 12 do roteiro da Etapa 16 ("Modo avião ao tocar em Sincronizar → mensagem de erro
+  clara").
+- **O que está errado:** quando não há rede, o `supabase.functions.invoke` lança
+  `FunctionsFetchError` com a mensagem fixa **"Failed to send a request to the Edge Function"**
+  (`node_modules/@supabase/functions-js/dist/module/types.js`, linha 39). O `invokeFunction`
+  repassa essa mensagem e o `friendlyError` não a reconhece: o alerta de Sincronizar mostraria
+  um texto técnico em inglês, o que reprova o cenário 12.
+- **Prompt:** nenhum. Encontrado pela IA antes do teste no aparelho, ao revisar o cenário 12
+  contra o caminho do erro (tela → hook → `invokeFunction` → `friendlyError`).
+- **Correção, com TDD:** novo caso em `__tests__/errors.test.ts` com a mensagem exata da
+  biblioteca. Antes: `1 failed, 4 passed` (`Received: "Failed to send a request to the Edge
+  Function"`). Depois de incluir `failed to send a request` no padrão de erros de rede:
+  **52 testes passando**.
+
 ### Observação — legenda do gráfico limitada a 6 categorias
 
 - **Onde:** Código 52 (`app/(app)/(tabs)/index.tsx`), `summary.byCategory.slice(0, 6)`.
@@ -625,3 +642,19 @@ apareceram e foram corrigidos os Erros 7 (aviso na versão web), 8 (CSV como tex
 - Não aplicados por já existirem: Códigos 64, 65, 69, 70 e 71 (ver Erro 13).
 - Verificação: `npm run typecheck` sem erros, 51 testes passando, app empacotando para iOS com
   o widget do Pluggy.
+- **Teste no iPhone com o Pluggy Bank (15.7), após corrigir as credenciais e o Erro 14:
+  aprovado** pela aluna ("All working well"). O aviso amarelo "SafeAreaView has been
+  deprecated" vem de dentro da biblioteca `react-native-pluggy-connect` (o app já usa
+  `react-native-safe-area-context`) e é o aviso inofensivo previsto na seção 15.1.
+
+### Etapa 16 — Validação do Open Finance
+
+- Verificações automáticas (16.5): `npm run typecheck` sem erros; `npm test` com **52 testes**
+  (o guia espera 46; a diferença são os 6 testes acrescentados nas correções dos Erros 9, 10 e
+  15); `npm run format` sem alterações.
+- Corrigido antes do roteiro: Erro 15 (cenário 12).
+- Checklist de segurança (16.6): o Client Secret não está no app nem no Git (conferido no
+  histórico completo); a função confere o `clientUserId`; a importação é idempotente; desconectar
+  apaga no Pluggy e localmente; a tela "Somente leitura" explica o acesso. O arquivo local
+  `supabase/.env`, usado só para enviar os segredos, é ignorado pelo Git e pode ser apagado depois
+  do envio, para que o segredo exista apenas no Supabase.
