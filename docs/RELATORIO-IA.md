@@ -691,6 +691,20 @@ apareceram e foram corrigidos os Erros 7 (aviso na versão web), 8 (CSV como tex
   `supabase/.env`, usado só para enviar os segredos, é ignorado pelo Git e pode ser apagado depois
   do envio, para que o segredo exista apenas no Supabase.
 
+### Etapa 17 — Portfólio e APK
+
+- **Repositório:** https://github.com/Karina-RM/Projeto-Fintrack-iesb-ads (branch `main`, commits
+  organizados por etapa, com um commit `fix:` separado para cada erro do material corrigido).
+- **Ocorrência no push:** `remote: Permission to Karina-RM/Projeto-Fintrack-iesb-ads.git denied
+  to PharmaBR` (403). O computador usado estava autenticado no GitHub com outra conta. Solução:
+  token de acesso pessoal da conta Karina-RM, usado só no comando
+  `git push https://Karina-RM@github.com/Karina-RM/Projeto-Fintrack-iesb-ads.git main`.
+- **APK (17.3):** `eas.json` com o perfil `preview` gerando APK (`buildType: apk`). Diferença em
+  relação ao guia: as variáveis `EXPO_PUBLIC_` (URL e chave *publishable* do Supabase, públicas
+  por definição) ficam no próprio perfil do `eas.json`, em vez de cadastradas no painel da Expo,
+  porque o `.env` não vai para o build na nuvem. O EAS acrescentou o `projectId` ao `app.json`.
+  Build disparado com `npx eas-cli build -p android --profile preview`.
+
 ---
 
 ## Pendências conhecidas (registradas, não corrigidas antes do prazo)

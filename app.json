@@ -28,6 +28,12 @@
       "expo-router",
       "expo-status-bar",
       "expo-sharing"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ae7400fa-18a8-4660-b21d-d76bec0cb971"
+      }
+    }
   }
 }
