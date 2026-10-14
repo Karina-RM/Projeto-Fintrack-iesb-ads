@@ -20,6 +20,12 @@ describe('friendlyError', () => {
     expect(friendlyError(error)).toBe('Sem conexão com a internet.');
   });
 
+  it('traduz falha de rede ao chamar uma Edge Function (FunctionsFetchError)', () => {
+    expect(
+      friendlyError(new Error('Failed to send a request to the Edge Function')),
+    ).toBe('Sem conexão com a internet.');
+  });
+
   it('mantém mensagens desconhecidas', () => {
     expect(friendlyError(new Error('Outro problema'))).toBe('Outro problema');
   });
