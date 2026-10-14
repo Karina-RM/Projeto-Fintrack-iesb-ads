@@ -413,6 +413,26 @@ etapa, para o diff mostrar exatamente a mudança.
   padrão `.env`) e rodar `npx supabase secrets set --env-file supabase/.env`. O segredo não passa
   pela linha de comando nem pelo histórico.
 
+### Observação — permissões além do necessário nas tabelas (melhoria de segurança)
+
+- **Onde:** permissões das tabelas criadas pelos scripts `schema.sql` e `open-finance.sql`.
+- **Como foi encontrado:** consulta em `information_schema.role_table_grants` sugerida pela IA
+  quando a aluna perguntou "How do i check for RLS on bank_connections?". Resultado:
+  - `anon` (sem login): `TRUNCATE`, `REFERENCES`, `TRIGGER`;
+  - `authenticated`: `SELECT`, `INSERT`, `UPDATE`, `DELETE` + `TRUNCATE`, `REFERENCES`, `TRIGGER`.
+- **Análise:** o essencial estava certo. O `anon` não tinha leitura nem escrita, porque o projeto
+  foi criado com *Automatically expose new tables* desligado. Mas os scripts do guia só fazem
+  `grant` e nunca `revoke`, então as tabelas herdam as permissões padrão do schema `public`. O
+  app não usa `TRUNCATE`, `REFERENCES` nem `TRIGGER`, e o `TRUNCATE` **não passa pelo RLS**. Com
+  a opção padrão do Supabase (*expose* ligado), o `anon` teria inclusive `SELECT/INSERT/UPDATE/
+  DELETE`: os dados continuariam protegidos pelo RLS, mas sem uma segunda barreira.
+- **Correção:** novo script versionado `supabase/hardening.sql` (menor privilégio): `revoke all`
+  do `anon` nas três tabelas e `revoke truncate, references, trigger` do `authenticated`. Termina
+  com uma consulta de conferência. Executado no SQL Editor pela aluna.
+- **Resultado esperado e conferido:** só `authenticated`, com `SELECT` em `categories` e
+  `DELETE, INSERT, SELECT, UPDATE` em `transactions` e `bank_connections`; RLS ativo
+  (`relrowsecurity = true`) nas três tabelas e 4 políticas em `bank_connections`.
+
 ### Observação — legenda do gráfico limitada a 6 categorias
 
 - **Onde:** Código 52 (`app/(app)/(tabs)/index.tsx`), `summary.byCategory.slice(0, 6)`.
@@ -503,3 +523,9 @@ apareceram e foram corrigidos os Erros 7 (aviso na versão web), 8 (CSV como tex
   Pluggy.
 - Corrigido o Erro 11 (conexão não salva com item em processamento).
 - `deno check` das três funções: sem erros. `npm run typecheck`: sem erros.
+- Publicação (seção 14.5), feita pela aluna: `supabase init` e `link`, segredos do Pluggy
+  enviados com `secrets set --env-file supabase/.env` (o arquivo é ignorado pelo Git e o segredo
+  não passou pela linha de comando), deploy das três funções com `--use-api`. Confirmado pela
+  aluna: funções ACTIVE, segredos listados só pelo nome, `bank_connections` com RLS.
+- Permissões revisadas e endurecidas com `supabase/hardening.sql` (ver observação na seção de
+  erros localizados).
