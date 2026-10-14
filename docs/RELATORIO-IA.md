@@ -690,3 +690,16 @@ apareceram e foram corrigidos os Erros 7 (aviso na versão web), 8 (CSV como tex
   variáveis `EXPO_PUBLIC_`. O arquivo local
   `supabase/.env`, usado só para enviar os segredos, é ignorado pelo Git e pode ser apagado depois
   do envio, para que o segredo exista apenas no Supabase.
+
+---
+
+## Pendências conhecidas (registradas, não corrigidas antes do prazo)
+
+1. **Tela "Conectar um banco" duplicada na pilha:** depois de conectar pelo widget do Pluggy, é
+   preciso tocar em Voltar duas vezes, porque a tela aparece repetida. Causa provável: o retorno
+   do banco pelo deep link (`banks/callback`) empilha uma nova cópia da rota em vez de voltar à
+   existente. Relatado pela aluna; não corrigido por decisão de prazo.
+2. **Excluir lançamento não funciona na versão web:** a exclusão pede confirmação com
+   `Alert.alert`, que no React Native Web não exibe nada (mesma limitação descrita na observação
+   sobre o roteiro da Etapa 11). No iPhone a exclusão funciona. O alvo da atividade é o app
+   Android/iOS.
