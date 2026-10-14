@@ -655,6 +655,12 @@ apareceram e foram corrigidos os Erros 7 (aviso na versão web), 8 (CSV como tex
 - Corrigido antes do roteiro: Erro 15 (cenário 12).
 - Checklist de segurança (16.6): o Client Secret não está no app nem no Git (conferido no
   histórico completo); a função confere o `clientUserId`; a importação é idempotente; desconectar
-  apaga no Pluggy e localmente; a tela "Somente leitura" explica o acesso. O arquivo local
+  apaga no Pluggy e localmente; a tela "Somente leitura" explica o acesso.
+- **Achado da auditoria do checklist:** o `.env` do app (raiz do projeto) também tinha as linhas
+  `PLUGGY_CLIENT_ID` e `PLUGGY_CLIENT_SECRET`. Elas não chegavam ao aplicativo (o Expo só embute
+  variáveis com prefixo `EXPO_PUBLIC_`) nem ao Git (`.env` ignorado; conferido no histórico
+  completo com um script que compara os valores sem exibi-los), mas o checklist exige que o
+  segredo não esteja no `.env`. As duas linhas foram removidas; o app ficou só com as três
+  variáveis `EXPO_PUBLIC_`. O arquivo local
   `supabase/.env`, usado só para enviar os segredos, é ignorado pelo Git e pode ser apagado depois
   do envio, para que o segredo exista apenas no Supabase.
