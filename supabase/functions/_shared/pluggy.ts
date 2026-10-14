@@ -95,29 +95,32 @@ export async function listAccounts(
 }
 
 // Percorre todas as páginas de transações da conta no período.
+// Usa GET /v2/transactions (paginação por cursor). O endpoint antigo, GET /transactions
+// com page/pageSize, responde 410 ENDPOINT_DEPRECATED para contas criadas a partir de
+// junho de 2026. Cada resposta traz "next": o link da próxima página, com o cursor no
+// parâmetro "after"; null quando acabou.
 export async function listTransactions(
   apiKey: string,
   accountId: string,
   range: { from: string; to: string },
 ): Promise<PluggyTransaction[]> {
-  const pageSize = 500;
   const all: PluggyTransaction[] = [];
-  for (let page = 1; page <= 20; page++) {
+  let after: string | null = null;
+  for (let page = 1; page <= 50; page++) {
     const query = new URLSearchParams({
       accountId,
-      from: range.from,
-      to: range.to,
-      pageSize: String(pageSize),
-      page: String(page),
+      dateFrom: range.from,
+      dateTo: range.to,
     });
-    const data = await request<{ results: PluggyTransaction[]; totalPages?: number }>(
-      `/transactions?${query}`,
+    if (after) query.set('after', after);
+    const data = await request<{ results: PluggyTransaction[]; next: string | null }>(
+      `/v2/transactions?${query}`,
       {},
       apiKey,
     );
     all.push(...(data.results ?? []));
-    if ((data.results ?? []).length < pageSize || page >= (data.totalPages ?? page))
-      break;
+    after = data.next ? new URL(data.next, BASE).searchParams.get('after') : null;
+    if (!after) break;
   }
   return all;
 }
