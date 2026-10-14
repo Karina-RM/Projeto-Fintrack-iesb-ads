@@ -527,6 +527,32 @@ etapa, para o diff mostrar exatamente a mudança.
   Function"`). Depois de incluir `failed to send a request` no padrão de erros de rede:
   **52 testes passando**.
 
+### Ocorrência — versão web quebra com "punycode.ucs2.decode" (modo de desenvolvimento)
+
+- **Sintoma (print da aluna):** ao abrir `http://192.168.31.117:8081` no Safari do iPhone (a versão
+  **web** servida pelo Expo, não o Expo Go), tela vermelha:
+  `Uncaught Error: undefined is not an object (evaluating 'punycode.ucs2.decode')`, com
+  `URLStateMachine` na pilha.
+- **Reprodução pela IA:** servidor `expo start --web` no ambiente da IA + Chromium automatizado
+  (Playwright). Mesmo erro, com a redação do Chrome: `Cannot read properties of undefined
+  (reading 'decode')`. O build de produção (`expo export --platform web`) não tinha o erro, só o
+  modo de desenvolvimento.
+- **1ª hipótese (descartada):** o polyfill de URL importado no `supabase.ts` seria desnecessário
+  na web. Ele foi carregado só no iOS/Android (arquivos `polyfills.native.ts`/`polyfills.ts`),
+  mas o erro **continuou**. A IA então baixou o bundle de desenvolvimento e procurou quem trazia o
+  `punycode`: a biblioteca do widget (`react-native-pluggy-connect`) tem **a própria cópia** do
+  `react-native-url-polyfill`. A mudança foi desfeita.
+- **Causa raiz:** o polyfill (via `whatwg-url-without-unicode`) faz `require("punycode")`. Na
+  web, o Metro resolve o pacote `punycode` 2.3.1 pela entrada de ES module
+  (`punycode.es6.js`); um `require` desse arquivo devolve um objeto sem a propriedade `ucs2`, que
+  só existe na versão CommonJS (`punycode.js`).
+- **Correção:** `metro.config.js` com um `resolveRequest` que aponta `punycode` sempre para
+  `punycode/punycode.js`. Resolve para os dois polyfills (o do app e o do widget) num só lugar.
+- **Verificação:** web em modo de desenvolvimento abre a tela de login sem erros no Chromium;
+  bundle de iOS gerado; 52 testes passando; `npm run typecheck` sem erros.
+- **Observação:** o alvo da atividade é o APK Android; a web serve só para uma olhada rápida
+  (ver também o Erro 7 e a observação sobre o roteiro da Etapa 11).
+
 ### Observação — legenda do gráfico limitada a 6 categorias
 
 - **Onde:** Código 52 (`app/(app)/(tabs)/index.tsx`), `summary.byCategory.slice(0, 6)`.
