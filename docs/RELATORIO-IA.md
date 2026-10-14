@@ -433,6 +433,83 @@ etapa, para o diff mostrar exatamente a mudança.
   `DELETE, INSERT, SELECT, UPDATE` em `transactions` e `bank_connections`; RLS ativo
   (`relrowsecurity = true`) nas três tabelas e 4 políticas em `bank_connections`.
 
+### Erro 13 — Etapa 15: "acréscimos" e substituições de código que já existe
+
+- **Onde:** seções 15.2 a 15.4 (Códigos 64, 65, 69, 70 e 71) e a linha do `.env` da 15.2.
+- **O que está errado:** a Etapa 15 manda acrescentar ou substituir trechos que o próprio guia já
+  entregou nas Etapas 2 a 6:
+  - Código 64 (tipos) é idêntico ao Código 9 (Etapa 4); Código 65 (função `make` do teste) já
+    está no Código 21 (Etapa 5); a variável `EXPO_PUBLIC_OPEN_FINANCE_SANDBOX` já está no
+    `.env.example` desde o Código 5 (Etapa 2);
+  - Códigos 69, 70 e 71 pedem para **acrescentar ao final** de `transactions.ts`,
+    `useTransactions.ts` e `date.ts` as funções `updateTransactionCategory`,
+    `useRecategorizeTransaction` e `formatDateTime`, que **já existem** nesses arquivos (Códigos
+    25, 27 e 16).
+- **Efeito de seguir o guia ao pé da letra** (simulado pela IA antes de aplicar):
+  ```
+  src/hooks/useTransactions.ts(56,17): error TS2323: Cannot redeclare exported variable 'useRecategorizeTransaction'.
+  src/hooks/useTransactions.ts(56,17): error TS2393: Duplicate function implementation.
+  src/services/transactions.ts(57,23): error TS2323: Cannot redeclare exported variable 'updateTransactionCategory'.
+  src/services/transactions.ts(57,23): error TS2393: Duplicate function implementation.
+  ```
+  (8 erros no total; o Metro também recusa empacotar o app.)
+- **Causa provável:** o guia foi escrito com as versões finais dos arquivos já nas primeiras
+  etapas (mesma origem dos Erros 4 e 5), mas as instruções da Etapa 15 continuaram descrevendo
+  uma evolução incremental.
+- **Correção:** os Códigos 64, 65, 69, 70 e 71 **não foram aplicados**, porque o conteúdo já está
+  no projeto. Conferido arquivo a arquivo.
+
+### Observação — Código 80 (Perfil final) desfaria a correção do Erro 8
+
+- O Código 80 volta a usar `Share.share({ message: toCsv(all) })`. Aplicado literalmente, a
+  exportação voltaria a gerar texto em vez de arquivo `.csv`.
+- **Decisão:** aplicado o Código 80 (que traz de volta o atalho "Contas bancárias", ver Erro 4)
+  mantendo a chamada `shareTransactionsCsv(all)` do Erro 8.
+
+### Erro 14 — Etapa 14: endpoint de transações do Pluggy desativado (410)
+
+- **Onde:** Código 59 (`supabase/functions/_shared/pluggy.ts`), função `listTransactions`, que
+  chama `GET /transactions?accountId=...&from=...&to=...&pageSize=500&page=N`.
+- **Sintoma (print da aluna no iPhone):** a conexão com o Pluggy Bank foi criada, mas ao
+  sincronizar aparece "Não foi possível sincronizar — O serviço de Open Finance não respondeu.
+  Tente mais tarde."
+- **Prompt:** "importacao com sucesso mas nao concluida" (com o print), seguido do log exportado
+  da função `bank-sync`.
+- **Log da função:**
+  ```
+  Pluggy /transactions?accountId=d2f6...&from=2026-07-16&to=2026-10-14&pageSize=500&page=1
+  respondeu 410: {"message":"This endpoint is deprecated. Use GET /v2/transactions with cursor
+  pagination instead.","code":410,"codeDescription":"ENDPOINT_DEPRECATED"}
+  ```
+- **Resposta da IA / causa:** o Pluggy desativou a listagem de transações por página. Segundo o
+  changelog oficial (junho de 2026), contas criadas a partir de junho de 2026 usam a listagem com
+  **paginação por cursor** (`GET /v2/transactions`), e a v1 está sendo desligada para elas. O guia
+  (setembro de 2026) ainda usa a v1. A IA conferiu o formato da v2 no SDK oficial `pluggy-sdk`
+  0.92.0 (outubro de 2026): filtros `accountId`, `dateFrom`, `dateTo` e `after` (cursor); resposta
+  `{ results, next }`, em que `next` é o link da próxima página (com o cursor no parâmetro
+  `after`) ou `null`. Os campos de cada transação (`type`, `amount`, `currencyCode`, `category`,
+  `status`) não mudaram, então as regras puras e os 23 testes do Open Finance continuam valendo.
+- **Correção:** `listTransactions` reescrita para a v2: monta `dateFrom`/`dateTo`, lê `next`,
+  extrai o `after` e segue até `next` ser `null` (limite de segurança de 50 páginas).
+- **Verificação:** `deno check` das três funções sem erros; republicação da `bank-sync` pela
+  aluna e nova sincronização no iPhone.
+
+### Ocorrência — `/auth` do Pluggy respondendo 401 (credenciais)
+
+- **Sintoma:** ao abrir "Conectar um banco", tela "Algo deu errado — O serviço de Open Finance não
+  respondeu".
+- **Log da função `bank-connect-token`:** `Pluggy /auth respondeu 401: {"message":"client keys
+  are invalid","codeDescription":"CLIENT_KEYS_UNAUTHORIZED"}`.
+- **Diagnóstico da IA sem ver o segredo:** um script leu o `supabase/.env` e mostrou apenas
+  nomes, tamanhos e formato dos valores. O `PLUGGY_CLIENT_ID` tinha 36 caracteres (UUID, como
+  esperado) e o `PLUGGY_CLIENT_SECRET` tinha 101 caracteres e não era UUID, ou seja, outro valor
+  copiado do painel. Sem aspas, espaços ou quebras de linha do Windows.
+- **Solução:** copiar de novo só o *Client Secret* da *Application*, deixar no arquivo apenas as
+  duas variáveis do Pluggy e reenviar com `npx supabase secrets set --env-file supabase/.env`
+  (sem republicar as funções). Depois disso o widget abriu e a conexão foi criada.
+- **Efeito colateral positivo:** com a importação falhando (Erro 14), o banco **continuou na
+  lista** com Sincronizar e Desconectar, o que confirma na prática a correção do Erro 11.
+
 ### Observação — legenda do gráfico limitada a 6 categorias
 
 - **Onde:** Código 52 (`app/(app)/(tabs)/index.tsx`), `summary.byCategory.slice(0, 6)`.
@@ -529,3 +606,22 @@ apareceram e foram corrigidos os Erros 7 (aviso na versão web), 8 (CSV como tex
   aluna: funções ACTIVE, segredos listados só pelo nome, `bank_connections` com RLS.
 - Permissões revisadas e endurecidas com `supabase/hardening.sql` (ver observação na seção de
   erros localizados).
+
+---
+
+## Encontro 6 — Etapas 15 a 17
+
+### Etapa 15 — App: conectar o banco e importar
+
+- Bibliotecas: `npx expo install react-native-webview` e
+  `npm install react-native-pluggy-connect pluggy-js` (aviso `ERESOLVE overriding peer
+  dependency` do npm é o mesmo da Ocorrência 3: dependência opcional, sem efeito).
+- Novos: `src/lib/config.ts`, `src/services/functions.ts`, `src/services/banks.ts`,
+  `src/hooks/useBanks.ts`, `BankConnectionCard`, `ImportedTransactionForm` e as telas
+  `banks/index`, `banks/connect` e `banks/callback`.
+- **Fechamento dos Erros 4 e 5:** com as telas do Open Finance criadas, voltam as versões finais
+  do guia: `app/(app)/_layout.tsx` (Código 78, com as rotas `banks/*`), a tela de edição
+  (Código 79, com `ImportedTransactionForm`) e o atalho "Contas bancárias" no Perfil (Código 80).
+- Não aplicados por já existirem: Códigos 64, 65, 69, 70 e 71 (ver Erro 13).
+- Verificação: `npm run typecheck` sem erros, 51 testes passando, app empacotando para iOS com
+  o widget do Pluggy.
